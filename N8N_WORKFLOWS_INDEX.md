@@ -13,9 +13,12 @@
 
 | Файл | Мова | Опис | Для кого |
 |------|------|------|----------|
+| **SETUP_API_METHOD.md** | EN/UA | Покроковий гайд для нової API-версії | Всі |
+| **README_API_UPDATE.md** | EN | Що змінилось у версії 2.0 (API) | Всі |
+| **QUICKSTART_API_UA.md** | UA | Швидкий старт для API-методу | Початківці |
 | **CREDENTIALS_IMPORT_README.md** | EN | Головний README з повним оглядом | Всі |
 | **N8N_CREDENTIALS_IMPORT_GUIDE.md** | EN | Детальна документація, troubleshooting, best practices | Досвідчені користувачі |
-| **QUICKSTART_UA.md** | UA | Швидкий старт за 5 хвилин | Початківці |
+| **QUICKSTART_UA.md** | UA | (Legacy) Швидкий старт для CLI-версії | Ті, хто ще використовує V1 |
 | **N8N_WORKFLOWS_INDEX.md** | UA/EN | Цей файл - навігація по проекту | Всі |
 
 ---
