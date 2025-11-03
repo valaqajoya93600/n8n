@@ -28,44 +28,45 @@ export * from './type-validation';
 export * from './result';
 export { LoggerProxy, NodeHelpers, ObservableObject, TelemetryHelpers };
 export {
-	isObjectEmpty,
-	deepCopy,
-	jsonParse,
-	base64DecodeUTF8,
-	jsonStringify,
-	replaceCircularReferences,
-	sleep,
-	sleepWithAbort,
-	fileTypeFromMimeType,
-	assert,
-	removeCircularRefs,
-	updateDisplayOptions,
-	randomInt,
-	randomString,
-	isSafeObjectProperty,
-	setSafeObjectProperty,
-	isDomainAllowed,
-	isCommunityPackageName,
+    isObjectEmpty,
+    deepCopy,
+    jsonParse,
+    base64DecodeUTF8,
+    jsonStringify,
+    replaceCircularReferences,
+    sleep,
+    sleepWithAbort,
+    fileTypeFromMimeType,
+    assert,
+    removeCircularRefs,
+    updateDisplayOptions,
+    randomInt,
+    randomString,
+    isSafeObjectProperty,
+    setSafeObjectProperty,
+    isDomainAllowed,
+    isCommunityPackageName,
+    flattenJSON,
 } from './utils';
 export {
-	isINodeProperties,
-	isINodePropertyOptions,
-	isINodePropertyCollection,
-	isINodePropertiesList,
-	isINodePropertyCollectionList,
-	isINodePropertyOptionsList,
-	isResourceMapperValue,
-	isResourceLocatorValue,
-	isFilterValue,
-	isNodeConnectionType,
+    isINodeProperties,
+    isINodePropertyOptions,
+    isINodePropertyCollection,
+    isINodePropertiesList,
+    isINodePropertyCollectionList,
+    isINodePropertyOptionsList,
+    isResourceMapperValue,
+    isResourceLocatorValue,
+    isFilterValue,
+    isNodeConnectionType,
 } from './type-guards';
 
 export {
-	parseExtractableSubgraphSelection,
-	buildAdjacencyList,
-	type ExtractableErrorResult,
-	type ExtractableSubgraphData,
-	type IConnectionAdjacencyList as AdjacencyList,
+    parseExtractableSubgraphSelection,
+    buildAdjacencyList,
+    type ExtractableErrorResult,
+    type ExtractableSubgraphData,
+    type IConnectionAdjacencyList as AdjacencyList,
 } from './graph/graph-utils';
 export { ExpressionExtensions } from './extensions';
 export * as ExpressionParser from './extensions/expression-parser';
@@ -76,26 +77,26 @@ export * from './node-parameters/path-utils';
 export * from './evaluation-helpers';
 
 export type {
-	DocMetadata,
-	NativeDoc,
-	DocMetadataArgument,
-	DocMetadataExample,
-	Extension,
+    DocMetadata,
+    NativeDoc,
+    DocMetadataArgument,
+    DocMetadataExample,
+    Extension,
 } from './extensions';
 
 declare module 'http' {
-	export interface IncomingMessage {
-		contentType?: string;
-		encoding: BufferEncoding;
-		contentDisposition?: { type: string; filename?: string };
-		rawBody: Buffer;
-		readRawBody(): Promise<void>;
-		_body: boolean;
+    export interface IncomingMessage {
+        contentType?: string;
+        encoding: BufferEncoding;
+        contentDisposition?: { type: string; filename?: string };
+        rawBody: Buffer;
+        readRawBody(): Promise<void>;
+        _body: boolean;
 
-		// This gets added by the `follow-redirects` package
-		responseUrl?: string;
+        // This gets added by the `follow-redirects` package
+        responseUrl?: string;
 
-		// This is added to response objects for all outgoing requests
-		req?: ClientRequest;
-	}
+        // This is added to response objects for all outgoing requests
+        req?: ClientRequest;
+    }
 }
