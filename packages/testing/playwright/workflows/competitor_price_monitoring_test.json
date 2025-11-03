@@ -1,0 +1,181 @@
+{
+	"name": "Competitor Price Monitoring Test",
+	"nodes": [
+		{
+			"parameters": {},
+			"id": "manual-trigger-001",
+			"name": "When clicking 'Execute Workflow'",
+			"type": "n8n-nodes-base.manualTrigger",
+			"typeVersion": 1,
+			"position": [240, 300]
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "price-a-001",
+							"name": "my_prices",
+							"type": "object",
+							"value": "={\"product_A\": 100, \"product_B\": 250, \"product_C\": 999}"
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "set-our-prices-002",
+			"name": "Our Prices",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [460, 300]
+		},
+		{
+			"parameters": {
+				"jsCode": "// Mock competitors data (in real workflow this comes from HTTP Request)\nreturn [\n  { json: { name: \"Competitor 1\", url: \"https://fake-competitor1.com/product_A\", product_id: \"product_A\" } },\n  { json: { name: \"Competitor 1\", url: \"https://fake-competitor1.com/product_B\", product_id: \"product_B\" } },\n  { json: { name: \"Competitor 2\", url: \"https://fake-competitor2.com/product_A\", product_id: \"product_A\" } },\n  { json: { name: \"Competitor 2\", url: \"https://fake-competitor2.com/product_C\", product_id: \"product_C\" } }\n];"
+			},
+			"id": "code-mock-competitors-003",
+			"name": "Mock Competitors Data",
+			"type": "n8n-nodes-base.code",
+			"typeVersion": 2,
+			"position": [680, 300]
+		},
+		{
+			"parameters": {
+				"jsCode": "// Get our reference prices from the first node\nconst myPrices = $item(0).$node[\"Our Prices\"].json.my_prices;\n\n// Get all competitor items\nconst competitors = $input.all();\n\n// Array to collect lower prices\nconst lowerPrices = [];\n\n// Simulate price checking for each competitor\nfor (const competitor of competitors) {\n  const competitorName = competitor.json.name;\n  const productId = competitor.json.product_id;\n  const ourPrice = myPrices[productId];\n  \n  // Mock competitor prices (lower than ours for testing)\n  const mockPrices = {\n    \"product_A\": 95,\n    \"product_B\": 240,\n    \"product_C\": 990\n  };\n  \n  const theirPrice = mockPrices[productId];\n\n  // Compare prices - only keep if competitor price is lower\n  if (theirPrice < ourPrice) {\n    lowerPrices.push({\n      name: competitorName,\n      product: productId,\n      their_price: theirPrice,\n      our_price: ourPrice,\n      difference: (ourPrice - theirPrice).toFixed(2)\n    });\n  }\n}\n\n// Return all lower prices as items\nreturn lowerPrices.map(item => ({ json: item }));"
+			},
+			"id": "code-compare-prices-004",
+			"name": "Compare Prices",
+			"type": "n8n-nodes-base.code",
+			"typeVersion": 2,
+			"position": [900, 300]
+		},
+		{
+			"parameters": {
+				"conditions": {
+					"options": {
+						"caseSensitive": true,
+						"leftValue": "",
+						"typeValidation": "strict"
+					},
+					"conditions": [
+						{
+							"id": "condition-has-items",
+							"leftValue": "={{ $json }}",
+							"rightValue": "",
+							"operator": {
+								"type": "object",
+								"operation": "notEmpty"
+							}
+						}
+					],
+					"combinator": "and"
+				}
+			},
+			"id": "if-check-lower-prices-005",
+			"name": "Check If Any Lower Prices",
+			"type": "n8n-nodes-base.if",
+			"typeVersion": 2.2,
+			"position": [1120, 300]
+		},
+		{
+			"parameters": {
+				"operation": "aggregateItems",
+				"aggregate": "aggregateAllItemData",
+				"destinationFieldName": "lower_prices"
+			},
+			"id": "aggregate-items-006",
+			"name": "Aggregate Lower Prices",
+			"type": "n8n-nodes-base.itemLists",
+			"typeVersion": 3.2,
+			"position": [1340, 200]
+		},
+		{
+			"parameters": {
+				"jsCode": "// Get all lower prices from aggregated data\nconst lowerPrices = $input.first().json.lower_prices;\n\n// Build the message\nlet message = '⚠️ УВАГА! Зниження цін у конкурентів:\\n\\n';\n\nfor (const item of lowerPrices) {\n  message += `• ${item.name}: ${item.product}\\n`;\n  message += `  └ Їхня ціна: ${item.their_price} | Наша ціна: ${item.our_price} | Різниця: -${item.difference}\\n`;\n}\n\nmessage += '\\n_Перевірте та адаптуйте ваші ціни відповідно до ринкової ситуації._';\n\nreturn [{\n  json: {\n    message: message,\n    lower_prices_count: lowerPrices.length,\n    lower_prices: lowerPrices\n  }\n}];"
+			},
+			"id": "code-format-message-007",
+			"name": "Format Message",
+			"type": "n8n-nodes-base.code",
+			"typeVersion": 2,
+			"position": [1560, 200]
+		}
+	],
+	"connections": {
+		"When clicking 'Execute Workflow'": {
+			"main": [
+				[
+					{
+						"node": "Our Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Our Prices": {
+			"main": [
+				[
+					{
+						"node": "Mock Competitors Data",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Mock Competitors Data": {
+			"main": [
+				[
+					{
+						"node": "Compare Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Compare Prices": {
+			"main": [
+				[
+					{
+						"node": "Check If Any Lower Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Check If Any Lower Prices": {
+			"main": [
+				[
+					{
+						"node": "Aggregate Lower Prices",
+						"type": "main",
+						"index": 0
+					}
+				],
+				[]
+			]
+		},
+		"Aggregate Lower Prices": {
+			"main": [
+				[
+					{
+						"node": "Format Message",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		}
+	},
+	"active": false,
+	"settings": {
+		"executionOrder": "v1"
+	},
+	"pinData": {},
+	"meta": {
+		"instanceId": "test-instance-competitor-price-monitoring"
+	},
+	"tags": []
+}
