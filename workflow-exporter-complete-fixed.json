@@ -1,0 +1,271 @@
+{
+  "name": "Workflow Exporter - Complete Fixed Version",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [240, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "test-creds",
+              "name": "testCredentials",
+              "type": "array",
+              "value": "=[\n  {\"credentialId\": \"9dQ5BxNgsJWu40Dy\", \"credentialName\": \"GitHub 1156888\", \"credentialType\": \"githubApi\"},\n  {\"credentialId\": \"jEUhq5ptnSJH0Qzn\", \"credentialName\": \"n8n account\", \"credentialType\": \"n8nApi\"},\n  {\"credentialId\": \"FX4b1RFeJSUsbfGI\", \"credentialName\": \"GitHub valaqajoya93600\", \"credentialType\": \"githubApi\"}\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "test-data",
+      "name": "Test Data (замініть на ваші credentials)",
+      "type": "n8n-nodes-base.set",
+      "position": [460, 300],
+      "typeVersion": 3.4,
+      "notes": "⚠️ ЗАМІНІТЬ це на ваш реальний список credentials"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "testCredentials",
+        "options": {}
+      },
+      "id": "split-credentials",
+      "name": "Split Credentials",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [680, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "command": "=npx n8n export:credentials --id={{ $json.credentialId }} --decrypted"
+      },
+      "id": "export-credential",
+      "name": "Export Credential (CLI)",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [900, 300],
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "notes": "Експортує конкретний credential без запису в файл"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Отримуємо дані з попередньої ноди\nconst stdout = $input.first().json.stdout || '';\nconst stderr = $input.first().json.stderr || '';\nconst exitCode = $input.first().json.exitCode;\nconst credentialId = $input.first().json.credentialId;\nconst credentialName = $input.first().json.credentialName;\n\n// Перевірка на помилки\nif (exitCode !== 0) {\n  return {\n    json: {\n      error: true,\n      credentialId,\n      credentialName,\n      message: 'Export command failed',\n      stderr: stderr.substring(0, 500),\n      exitCode\n    }\n  };\n}\n\nif (!stdout) {\n  return {\n    json: {\n      error: true,\n      credentialId,\n      credentialName,\n      message: 'No output from export command'\n    }\n  };\n}\n\ntry {\n  // Знаходимо, де починається JSON (символ '[')\n  const jsonStartIndex = stdout.indexOf('[');\n  \n  if (jsonStartIndex === -1) {\n    return {\n      json: {\n        error: true,\n        credentialId,\n        credentialName,\n        message: 'No JSON found in output',\n        stdout: stdout.substring(0, 500)\n      }\n    };\n  }\n  \n  // Відрізаємо все зайве до JSON\n  const jsonString = stdout.substring(jsonStartIndex);\n  \n  // Перетворюємо текст на справжній JSON\n  const result = JSON.parse(jsonString);\n  \n  // result - це масив, беремо перший елемент\n  const credential = Array.isArray(result) ? result[0] : result;\n  \n  if (!credential) {\n    return {\n      json: {\n        error: true,\n        credentialId,\n        credentialName,\n        message: 'Empty result from export'\n      }\n    };\n  }\n  \n  // Повертаємо успішний результат\n  return {\n    json: {\n      success: true,\n      id: credential.id,\n      name: credential.name,\n      type: credential.type,\n      data: credential.data,\n      createdAt: credential.createdAt,\n      updatedAt: credential.updatedAt,\n      isManaged: credential.isManaged\n    }\n  };\n  \n} catch (error) {\n  return {\n    json: {\n      error: true,\n      credentialId,\n      credentialName,\n      message: 'Failed to parse JSON',\n      errorDetails: error.message,\n      stdout: stdout.substring(0, 500)\n    }\n  };\n}"
+      },
+      "id": "parse-credential",
+      "name": "Parse Credential from stdout",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 300],
+      "typeVersion": 2,
+      "notes": "Парсить JSON з stdout команди"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-success",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "leftValue": "={{ $json.success }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "position": [1340, 300],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "resource": "credential",
+        "name": "={{ $json.name }}",
+        "credentialTypeName": "={{ $json.type }}",
+        "data": "={{ JSON.stringify($json.data) }}",
+        "requestOptions": {}
+      },
+      "id": "import-to-target",
+      "name": "Import to Target System",
+      "type": "n8n-nodes-base.n8n",
+      "position": [1560, 240],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "YEjoYTTqhxxPaDq3",
+          "name": "TARGET n8n API"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "notes": "⚠️ Налаштуйте TARGET n8n API credential"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Збираємо всі результати\nconst allItems = $input.all();\n\nconst results = {\n  successful: [],\n  failed: [],\n  skipped: [],\n  total: allItems.length\n};\n\nfor (const item of allItems) {\n  const credName = item.json.name || item.json.credentialName || 'Unknown';\n  const credId = item.json.id || item.json.credentialId || 'Unknown';\n  \n  if (item.json.error) {\n    results.failed.push({\n      id: credId,\n      name: credName,\n      reason: item.json.message || 'Unknown error'\n    });\n  } else if (item.json.success) {\n    results.successful.push({\n      id: credId,\n      name: credName\n    });\n  } else {\n    results.skipped.push({\n      id: credId,\n      name: credName\n    });\n  }\n}\n\nreturn {\n  json: {\n    summary: {\n      total: results.total,\n      successful: results.successful.length,\n      failed: results.failed.length,\n      skipped: results.skipped.length\n    },\n    details: results,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "position": [1780, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {},
+      "id": "noop-success",
+      "name": "Success Branch",
+      "type": "n8n-nodes-base.noOp",
+      "position": [1560, 360],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "noop-failed",
+      "name": "Failed Branch",
+      "type": "n8n-nodes-base.noOp",
+      "position": [1560, 240],
+      "typeVersion": 1,
+      "notes": "Credentials що не вдалося експортувати"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Test Data (замініть на ваші credentials)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Data (замініть на ваші credentials)": {
+      "main": [
+        [
+          {
+            "node": "Split Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Credentials": {
+      "main": [
+        [
+          {
+            "node": "Export Credential (CLI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Credential (CLI)": {
+      "main": [
+        [
+          {
+            "node": "Parse Credential from stdout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Credential from stdout": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Import to Target System",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Success Branch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failed Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import to Target System": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Branch": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Failed Branch": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
