@@ -15,6 +15,7 @@ import { EventBusConfig } from './configs/event-bus.config';
 import { ExecutionsConfig } from './configs/executions.config';
 import { ExternalHooksConfig } from './configs/external-hooks.config';
 import { GenericConfig } from './configs/generic.config';
+import { GhlConfig } from './configs/ghl.config';
 import { HiringBannerConfig } from './configs/hiring-banner.config';
 import { LicenseConfig } from './configs/license.config';
 import { LoggingConfig } from './configs/logging.config';
@@ -44,6 +45,7 @@ export type { TaskRunnerMode } from './configs/runners.config';
 export { TaskRunnersConfig } from './configs/runners.config';
 export { SecurityConfig } from './configs/security.config';
 export { ExecutionsConfig } from './configs/executions.config';
+export { GhlConfig } from './configs/ghl.config';
 export { LOG_SCOPES } from './configs/logging.config';
 export type { LogScope } from './configs/logging.config';
 export { WorkflowsConfig } from './configs/workflows.config';
@@ -61,156 +63,159 @@ export type Protocol = z.infer<typeof protocolSchema>;
 
 @Config
 export class GlobalConfig {
-	@Nested
-	auth: AuthConfig;
+    @Nested
+    auth: AuthConfig;
 
-	@Nested
-	database: DatabaseConfig;
+    @Nested
+    database: DatabaseConfig;
 
-	@Nested
-	credentials: CredentialsConfig;
+    @Nested
+    credentials: CredentialsConfig;
 
-	@Nested
-	userManagement: UserManagementConfig;
+    @Nested
+    userManagement: UserManagementConfig;
 
-	@Nested
-	versionNotifications: VersionNotificationsConfig;
+    @Nested
+    versionNotifications: VersionNotificationsConfig;
 
-	@Nested
-	publicApi: PublicApiConfig;
+    @Nested
+    publicApi: PublicApiConfig;
 
-	@Nested
-	externalHooks: ExternalHooksConfig;
+    @Nested
+    externalHooks: ExternalHooksConfig;
 
-	@Nested
-	templates: TemplatesConfig;
+    @Nested
+    templates: TemplatesConfig;
 
-	@Nested
-	eventBus: EventBusConfig;
+    @Nested
+    eventBus: EventBusConfig;
 
-	@Nested
-	nodes: NodesConfig;
+    @Nested
+    nodes: NodesConfig;
 
-	@Nested
-	workflows: WorkflowsConfig;
+    @Nested
+    workflows: WorkflowsConfig;
 
-	@Nested
-	sentry: SentryConfig;
+    @Nested
+    sentry: SentryConfig;
 
-	/** Path n8n is deployed to */
-	@Env('N8N_PATH')
-	path: string = '/';
+    /** Path n8n is deployed to */
+    @Env('N8N_PATH')
+    path: string = '/';
 
-	/** Host name n8n can be reached */
-	@Env('N8N_HOST')
-	host: string = 'localhost';
+    /** Host name n8n can be reached */
+    @Env('N8N_HOST')
+    host: string = 'localhost';
 
-	/** HTTP port n8n can be reached */
-	@Env('N8N_PORT')
-	port: number = 5678;
+    /** HTTP port n8n can be reached */
+    @Env('N8N_PORT')
+    port: number = 5678;
 
-	/** IP address n8n should listen on */
-	@Env('N8N_LISTEN_ADDRESS')
-	listen_address: string = '::';
+    /** IP address n8n should listen on */
+    @Env('N8N_LISTEN_ADDRESS')
+    listen_address: string = '::';
 
-	/** HTTP Protocol via which n8n can be reached */
-	@Env('N8N_PROTOCOL', protocolSchema)
-	protocol: Protocol = 'http';
+    /** HTTP Protocol via which n8n can be reached */
+    @Env('N8N_PROTOCOL', protocolSchema)
+    protocol: Protocol = 'http';
 
-	@Nested
-	endpoints: EndpointsConfig;
+    @Nested
+    endpoints: EndpointsConfig;
 
-	@Nested
-	cache: CacheConfig;
+    @Nested
+    cache: CacheConfig;
 
-	@Nested
-	queue: ScalingModeConfig;
+    @Nested
+    queue: ScalingModeConfig;
 
-	@Nested
-	logging: LoggingConfig;
+    @Nested
+    logging: LoggingConfig;
 
-	@Nested
-	taskRunners: TaskRunnersConfig;
+    @Nested
+    taskRunners: TaskRunnersConfig;
 
-	@Nested
-	multiMainSetup: MultiMainSetupConfig;
+    @Nested
+    multiMainSetup: MultiMainSetupConfig;
 
-	@Nested
-	generic: GenericConfig;
+    @Nested
+    generic: GenericConfig;
 
-	@Nested
-	license: LicenseConfig;
+    @Nested
+    ghl: GhlConfig;
 
-	@Nested
-	security: SecurityConfig;
+    @Nested
+    license: LicenseConfig;
 
-	@Nested
-	executions: ExecutionsConfig;
+    @Nested
+    security: SecurityConfig;
 
-	@Nested
-	diagnostics: DiagnosticsConfig;
+    @Nested
+    executions: ExecutionsConfig;
 
-	@Nested
-	aiAssistant: AiAssistantConfig;
+    @Nested
+    diagnostics: DiagnosticsConfig;
 
-	@Nested
-	aiBuilder: AiBuilderConfig;
+    @Nested
+    aiAssistant: AiAssistantConfig;
 
-	@Nested
-	tags: TagsConfig;
+    @Nested
+    aiBuilder: AiBuilderConfig;
 
-	@Nested
-	workflowHistory: WorkflowHistoryConfig;
+    @Nested
+    tags: TagsConfig;
 
-	@Nested
-	deployment: DeploymentConfig;
+    @Nested
+    workflowHistory: WorkflowHistoryConfig;
 
-	@Nested
-	mfa: MfaConfig;
+    @Nested
+    deployment: DeploymentConfig;
 
-	@Nested
-	hiringBanner: HiringBannerConfig;
+    @Nested
+    mfa: MfaConfig;
 
-	@Nested
-	personalization: PersonalizationConfig;
+    @Nested
+    hiringBanner: HiringBannerConfig;
 
-	@Nested
-	sso: SsoConfig;
+    @Nested
+    personalization: PersonalizationConfig;
 
-	/** Default locale for the UI. */
-	@Env('N8N_DEFAULT_LOCALE')
-	defaultLocale: string = 'en';
+    @Nested
+    sso: SsoConfig;
 
-	/** Whether to hide the page that shows active workflows and executions count. */
-	@Env('N8N_HIDE_USAGE_PAGE')
-	hideUsagePage: boolean = false;
+    /** Default locale for the UI. */
+    @Env('N8N_DEFAULT_LOCALE')
+    defaultLocale: string = 'en';
 
-	/** Number of reverse proxies n8n is running behind. */
-	@Env('N8N_PROXY_HOPS')
-	proxy_hops: number = 0;
+    /** Whether to hide the page that shows active workflows and executions count. */
+    @Env('N8N_HIDE_USAGE_PAGE')
+    hideUsagePage: boolean = false;
 
-	/** SSL key for HTTPS protocol. */
-	@Env('N8N_SSL_KEY')
-	ssl_key: string = '';
+    /** Number of reverse proxies n8n is running behind. */
+    @Env('N8N_PROXY_HOPS')
+    proxy_hops: number = 0;
 
-	/** SSL cert for HTTPS protocol. */
-	@Env('N8N_SSL_CERT')
-	ssl_cert: string = '';
+    /** SSL key for HTTPS protocol. */
+    @Env('N8N_SSL_KEY')
+    ssl_key: string = '';
 
-	/** Public URL where the editor is accessible. Also used for emails sent from n8n. */
-	@Env('N8N_EDITOR_BASE_URL')
-	editorBaseUrl: string = '';
+    /** SSL cert for HTTPS protocol. */
+    @Env('N8N_SSL_CERT')
+    ssl_cert: string = '';
 
-	/** URLs to external frontend hooks files, separated by semicolons. */
-	@Env('EXTERNAL_FRONTEND_HOOKS_URLS')
-	externalFrontendHooksUrls: string = '';
+    /** Public URL where the editor is accessible. Also used for emails sent from n8n. */
+    @Env('N8N_EDITOR_BASE_URL')
+    editorBaseUrl: string = '';
 
-	@Nested
-	redis: RedisConfig;
+    /** URLs to external frontend hooks files, separated by semicolons. */
+    @Env('EXTERNAL_FRONTEND_HOOKS_URLS')
+    externalFrontendHooksUrls: string = '';
 
-	@Nested
-	ai: AiConfig;
+    @Nested
+    redis: RedisConfig;
 
-	@Nested
-	dataTable: DataTableConfig;
+    @Nested
+    ai: AiConfig;
+
+    @Nested
+    dataTable: DataTableConfig;
 }
