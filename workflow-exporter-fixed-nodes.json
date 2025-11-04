@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "407dbf8589dc4ea96193dbff3c0e16143d2eb7a6e038bd8ca96f187e09c504c1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "credential",
+        "operation": "get",
+        "credentialId": {
+          "__rl": true,
+          "value": "={{ $json.credentialId }}",
+          "mode": "id"
+        }
+      },
+      "id": "get-credential-source",
+      "name": "Get Credential from Source",
+      "type": "n8n-nodes-base.n8n",
+      "position": [3440, 9040],
+      "typeVersion": 1,
+      "credentials": {
+        "n8nApi": {
+          "id": "SOURCE_API_CREDENTIAL_ID",
+          "name": "SOURCE n8n API"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "notes": "Замінює Execute Command - отримує конкретний credential через API"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format credential data for export\nconst cred = $input.first().json;\n\nif (!cred || !cred.id) {\n  return {\n    json: {\n      error: true,\n      message: `Failed to get credential: ${$('Loop Over Items').item.json.credentialName}`,\n      credentialId: $('Loop Over Items').item.json.credentialId,\n      credentialName: $('Loop Over Items').item.json.credentialName\n    }\n  };\n}\n\nreturn {\n  json: {\n    id: cred.id,\n    name: cred.name,\n    type: cred.type,\n    data: cred.data,\n    createdAt: cred.createdAt,\n    updatedAt: cred.updatedAt\n  }\n};"
+      },
+      "id": "format-credential",
+      "name": "Format Credential",
+      "type": "n8n-nodes-base.code",
+      "position": [3680, 9040],
+      "typeVersion": 2,
+      "notes": "Форматує credential для подальшого експорту"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-error",
+              "operator": {
+                "type": "boolean",
+                "operation": "notExists"
+              },
+              "leftValue": "={{ $json.error }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-credential-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "position": [3920, 9040],
+      "typeVersion": 2.2,
+      "notes": "Перевіряє чи credential успішно отримано"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate All Results",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [4160, 9040],
+      "typeVersion": 1,
+      "notes": "Збирає всі результати після loop"
+    }
+  ],
+  "connections": {
+    "Get Credential from Source": {
+      "main": [
+        [
+          {
+            "node": "Format Credential",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Credential": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
