@@ -1,0 +1,296 @@
+{
+	"name": "Competitor Price Monitoring with Slack Report",
+	"meta": {
+		"templateCredsSetupCompleted": false,
+		"templateId": "competitor_price_monitoring"
+	},
+	"nodes": [
+		{
+			"parameters": {
+				"rule": {
+					"interval": [
+						{
+							"field": "hours",
+							"hoursInterval": 1
+						}
+					]
+				}
+			},
+			"id": "schedule-trigger-001",
+			"name": "Schedule Trigger",
+			"type": "n8n-nodes-base.scheduleTrigger",
+			"typeVersion": 1.2,
+			"position": [240, 300]
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "price-a-001",
+							"name": "my_prices",
+							"type": "object",
+							"value": "={\"product_A\": 100, \"product_B\": 250, \"product_C\": 999}"
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "set-our-prices-002",
+			"name": "Our Prices",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [460, 300]
+		},
+		{
+			"parameters": {
+				"url": "https://api.my-company.com/competitors",
+				"options": {}
+			},
+			"id": "http-get-competitors-003",
+			"name": "Get Competitors",
+			"type": "n8n-nodes-base.httpRequest",
+			"typeVersion": 4.2,
+			"position": [680, 300]
+		},
+		{
+			"parameters": {
+				"jsCode": "// Access reference prices from the Set node\nconst ourPrices = $item(0).$node[\"Our Prices\"].json.my_prices || {};\n\nconst competitors = $input.all();\nconst lowerPrices = [];\n\nfor (const competitor of competitors) {\n  const { name, url, product_id: productId } = competitor.json;\n\n  if (!url || !productId) {\n    continue;\n  }\n\n  const ourPriceValue = Number(ourPrices[productId]);\n  if (!Number.isFinite(ourPriceValue)) {\n    continue;\n  }\n\n  try {\n    const html = await this.helpers.httpRequest({\n      method: 'GET',\n      url,\n      json: false,\n    });\n\n    const priceSpanMatch = html.match(/<span[^>]*class=[\"']price[\"'][^>]*>(.*?)<\\/span>/i);\n    if (!priceSpanMatch) {\n      continue;\n    }\n\n    const priceText = priceSpanMatch[1]\n      .replace(/&nbsp;/gi, ' ')\n      .replace(/<[^>]+>/g, '')\n      .trim();\n\n    const numericMatch = priceText.match(/[\\d.,]+/);\n    if (!numericMatch) {\n      continue;\n    }\n\n    let normalized = numericMatch[0].replace(/\\s/g, '');\n    if (normalized.includes(',') && normalized.includes('.')) {\n      if (normalized.lastIndexOf('.') > normalized.lastIndexOf(',')) {\n        normalized = normalized.replace(/,/g, '');\n      } else {\n        normalized = normalized.replace(/\\./g, '').replace(/,/g, '.');\n      }\n    } else if (normalized.includes(',')) {\n      normalized = normalized.replace(/,/g, '.');\n    }\n\n    const theirPriceValue = parseFloat(normalized);\n\n    if (!Number.isFinite(theirPriceValue)) {\n      continue;\n    }\n\n    if (theirPriceValue < ourPriceValue) {\n      lowerPrices.push({\n        name,\n        product: productId,\n        their_price: Number(theirPriceValue.toFixed(2)),\n        our_price: Number(ourPriceValue.toFixed(2)),\n        difference: Number((ourPriceValue - theirPriceValue).toFixed(2)),\n        url,\n      });\n    }\n  } catch (error) {\n    console.error(`Failed to process ${name || url}:`, error.message);\n    continue;\n  }\n}\n\nreturn lowerPrices.map((entry) => ({ json: entry }));"
+			},
+			"id": "code-compare-prices-004",
+			"name": "Loop and Compare Prices",
+			"type": "n8n-nodes-base.code",
+			"typeVersion": 2,
+			"position": [900, 300]
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "placeholder-001",
+							"name": "__placeholder",
+							"type": "boolean",
+							"value": true
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "set-default-empty-005",
+			"name": "Default Empty Result",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [680, 500]
+		},
+		{
+			"parameters": {
+				"mode": "append"
+			},
+			"id": "merge-combine-results-006",
+			"name": "Combine Results",
+			"type": "n8n-nodes-base.merge",
+			"typeVersion": 2,
+			"position": [1120, 300]
+		},
+		{
+			"parameters": {
+				"operation": "aggregateItems",
+				"aggregate": "aggregateAllItemData",
+				"destinationFieldName": "lower_prices"
+			},
+			"id": "aggregate-items-007",
+			"name": "Aggregate Lower Prices",
+			"type": "n8n-nodes-base.itemLists",
+			"typeVersion": 3.1,
+			"position": [1340, 300]
+		},
+		{
+			"parameters": {
+				"conditions": {
+					"options": {
+						"caseSensitive": true,
+						"leftValue": "",
+						"typeValidation": "strict",
+						"version": 2
+					},
+					"conditions": [
+						{
+							"id": "condition-has-lower-prices",
+							"leftValue": "={{ $json.lower_prices.filter(item => !item.__placeholder).length }}",
+							"rightValue": 0,
+							"operator": {
+								"type": "number",
+								"operation": "gt"
+							}
+						}
+					],
+					"combinator": "and"
+				},
+				"options": {}
+			},
+			"id": "if-check-lower-prices-008",
+			"name": "Check If Any Lower Prices",
+			"type": "n8n-nodes-base.if",
+			"typeVersion": 2.2,
+			"position": [1560, 300]
+		},
+		{
+			"parameters": {
+				"jsCode": "const aggregated = $input.first().json.lower_prices || [];\nconst lowerPrices = aggregated.filter((item) => !item.__placeholder);\n\nlet message = '⚠️ *УВАГА! Зниження цін у конкурентів:*\\n\\n';\n\nfor (const item of lowerPrices) {\n  message += `• *${item.name}*: ${item.product}\\n`;\n  message += `  └ Їхня ціна: ${item.their_price} | Наша ціна: ${item.our_price} | Різниця: -${item.difference}\\n`;\n}\n\nmessage += '\\n_Перевірте та адаптуйте ваші ціни відповідно до ринкової ситуації._';\n\nreturn [{\n  json: {\n    message,\n    lower_prices_count: lowerPrices.length,\n    lower_prices: lowerPrices\n  }\n}];"
+			},
+			"id": "code-format-message-009",
+			"name": "Format Slack Message",
+			"type": "n8n-nodes-base.code",
+			"typeVersion": 2,
+			"position": [1780, 300]
+		},
+		{
+			"parameters": {
+				"select": "channel",
+				"channelId": {
+					"__rl": true,
+					"value": "C01234567",
+					"mode": "list",
+					"cachedResultName": "price-alerts"
+				},
+				"text": "={{ $json.message }}",
+				"otherOptions": {
+					"includeLinkToWorkflow": false,
+					"mrkdwn": true
+				}
+			},
+			"id": "slack-send-report-010",
+			"name": "Send Report to Slack",
+			"type": "n8n-nodes-base.slack",
+			"typeVersion": 2.3,
+			"position": [2000, 300]
+		},
+		{
+			"parameters": {
+				"content": "## Competitor Price Monitoring Workflow\n\nЦей workflow автоматично перевіряє ціни конкурентів щогодини та надсилає звіт у Slack.\n\n**Як це працює:**\n1. Schedule Trigger запускає workflow кожну годину\n2. Set node зберігає наші еталонні ціни\n3. HTTP Request отримує список конкурентів\n4. Code node обробляє кожного конкурента:\n   - Робить HTTP запит до їх сайту\n   - Парсить HTML для витягування ціни\n   - Порівнює з нашими цінами\n   - Збирає тільки випадки з нижчою ціною\n5. Merge + Item Lists агрегують усі знижені ціни\n6. IF перевіряє чи є нижчі ціни перед Slack\n7. Format створює читабельне повідомлення\n8. Slack відправляє ОДИН агрегований звіт\n\n**Налаштування:**\n- Змініть ціни в \"Our Prices\" node\n- Налаштуйте URL API в \"Get Competitors\" node\n- Виберіть Slack канал в \"Send Report to Slack\" node\n- Адаптуйте парсинг HTML під структуру сайтів конкурентів",
+				"height": 520,
+				"width": 400,
+				"color": 4
+			},
+			"id": "sticky-note-011",
+			"name": "Sticky Note",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-80, 80]
+		}
+	],
+	"connections": {
+		"Schedule Trigger": {
+			"main": [
+				[
+					{
+						"node": "Our Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Our Prices": {
+			"main": [
+				[
+					{
+						"node": "Get Competitors",
+						"type": "main",
+						"index": 0
+					},
+					{
+						"node": "Default Empty Result",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Get Competitors": {
+			"main": [
+				[
+					{
+						"node": "Loop and Compare Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Loop and Compare Prices": {
+			"main": [
+				[
+					{
+						"node": "Combine Results",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Default Empty Result": {
+			"main": [
+				[
+					{
+						"node": "Combine Results",
+						"type": "main",
+						"index": 1
+					}
+				]
+			]
+		},
+		"Combine Results": {
+			"main": [
+				[
+					{
+						"node": "Aggregate Lower Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Aggregate Lower Prices": {
+			"main": [
+				[
+					{
+						"node": "Check If Any Lower Prices",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		},
+		"Check If Any Lower Prices": {
+			"main": [
+				[
+					{
+						"node": "Format Slack Message",
+						"type": "main",
+						"index": 0
+					}
+				],
+				[]
+			]
+		},
+		"Format Slack Message": {
+			"main": [
+				[
+					{
+						"node": "Send Report to Slack",
+						"type": "main",
+						"index": 0
+					}
+				]
+			]
+		}
+	},
+	"active": false,
+	"settings": {
+		"executionOrder": "v1"
+	},
+	"pinData": {},
+	"tags": []
+}
